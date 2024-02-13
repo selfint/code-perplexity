@@ -1,0 +1,23 @@
+{
+  "name": "code-perplexity",
+  "version": "0.1.0",
+  "description": "",
+  "main": "perp.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/selfint/code-perplexity.git"
+  },
+  "author": "Tom Selfin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/selfint/code-perplexity/issues"
+  },
+  "homepage": "https://github.com/selfint/code-perplexity#readme",
+  "dependencies": {
+    "@xenova/transformers": "^2.15.0"
+  }
+}
