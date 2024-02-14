@@ -15,6 +15,11 @@ function mean(numbers) {
     return numbers.reduce((a, b) => a + b) / numbers.length;
 }
 
+// https://gist.github.com/engelen/fbce4476c9e68c52ff7e5c2da5c24a28
+function argmax(array) {
+    return array.map((x, i) => [x, i]).reduce((r, a) => (a[0] > r[0] ? a : r))[1];
+}
+
 const bad = [
     `def fibonacci(n: int) -> int:
     """
@@ -28,7 +33,7 @@ const bad = [
     """
     `,
     `
-    assert n >= 0, f"Invalid value {n=!r} < 0"
+    assert n >= 0, f"Invalid input {n} < 0"
 
     if n <= 1:
         return n
@@ -52,7 +57,7 @@ const good = [
     """
     `,
     `
-    assert n >= 0, f"Invalid value {n=!r} < 0"
+    assert n >= 0, f"Invalid input {n} < 0"
 
     if n <= 1:
         return n
@@ -70,14 +75,24 @@ async function calculatePerplexity(pipe, [signature, implementation]) {
 
     const scores = [];
     for (let i = 1; i < impTokens.length - 1; i++) {
-        /** @type {string} */
-        const token = tokenizer.decode([impTokens[i]]);
-        const context = tokenizer(tokenizer.decode(sigTokens.concat(impTokens.slice(0, i))));
         const target = Number(impTokens[i]);
-        // this is wrong
+
+        /** @type {string} */
+        const token = tokenizer.decode([target]);
+        const context = tokenizer(tokenizer.decode(sigTokens.concat(impTokens.slice(0, i))));
+        // this is not perplexity
+        // this calculates how much the model "agrees" with the implementation
+        const logits = (await model(context)).logits[0][-1].data;
+        const probs = softmax(logits);
+        const best = argmax(Array.from(probs));
+        const bestProb = probs[best];
+        const bestToken = tokenizer.decode([best]);
+        const targetProb = probs[target];
         /** @type {number} */
-        const perplexity = softmax((await model(context)).logits[0][-1].data)[target];
-        console.log(`${i.toString().padStart(3, ' ')}/${impTokens.length} = ${perplexity.toString().padStart(18, ' ')} '${token}'`);
+        const perplexity = targetProb / bestProb;
+        if (perplexity !== 1.0) {
+            console.log(`${i.toString().padStart(3, ' ')}/${impTokens.length} = ${perplexity.toPrecision(16)} '${token}' -> '${bestToken}'`);
+        }
         scores.push(perplexity)
     }
 
@@ -91,8 +106,8 @@ async function main() {
     const badP = await calculatePerplexity(pipe, bad);
 
     console.log([goodP, badP]);
-    console.log([mean(goodP), median(goodP)]);
-    console.log([mean(badP), median(badP)]);
+    console.log(mean(goodP));
+    console.log(mean(badP));
 }
 
 main();
